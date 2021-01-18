@@ -145,9 +145,9 @@ net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_dev
              *   (2) queue_push() を使用してキューに entry を push する
              *     - キューの操作は mutex をロックして実施すること（アンロック忘れに注意）
              */
-             debugf("queue pushed, dev=%s, proto=%s(0x%04x) len=%zd", dev->name, proto->name, type, len);
-             debugdump(data, len);
-             return 0;
+            debugf("queue pushed, dev=%s, proto=%s(0x%04x) len=%zd", dev->name, proto->name, type, len);
+            debugdump(data, len);
+            return 0;
         }
     }
     /* unsupported protocol */

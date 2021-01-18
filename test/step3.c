@@ -23,12 +23,12 @@ struct {
     unsigned int type;
     size_t len;
     uint8_t *data;
-} test = {0x0800, sizeof(data), data}        ;
+} test = {0x0800, sizeof(data), data};
 
 static volatile sig_atomic_t terminate;
 
 static void
-dummy_handler(const uint8_t *data, size_t, len, struct net_device *dev)
+dummy_handler(const uint8_t *data, size_t len, struct net_device *dev)
 {
     debugf("dev=%s, len=%zd", dev->name, len);
     debugdump(data, len);
@@ -41,7 +41,8 @@ on_signal(int s)
     terminate = 1;
 }
 
-int main(void)
+int
+main(void)
 {
     struct net_device *dev;
 
