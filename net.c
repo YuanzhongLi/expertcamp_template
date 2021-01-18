@@ -4,9 +4,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "util.h"
 #include "net.h"
+
+#define NET_THREAD_SLEEP_TIME 1000 /* micro seconds */
 
 struct net_protocol {
     struct net_protocol *next;
@@ -22,6 +25,9 @@ struct net_protocol_queue_entry {
     size_t len;
     uint8_t data[0];
 };
+
+static pthread_t thread;
+static volatile sig_atomic_t terminate;
 
 /* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct net_device *devices;
@@ -209,6 +215,65 @@ net_protocol_name(uint16_t type)
     return "UNKNOWN";
 }
 
+static void *
+net_thread(void *arg)
+{
+    unsigned int count;
+    struct net_device *dev;
+    struct net_protocol *proto;
+    struct net_protocol_queue_entry *entry;
+
+    while (!terminate) {
+        count = 0;
+        for (dev = devices; dev; dev = dev->next) {
+            /*
+             * exercise: step4
+             *   デバイスにパケットの受信を促す
+             *   (1) デバイスの状態を確認
+             *     - デバイスがUP状態でなければ (2) の処理はスキップ
+             *   (2) デバイス固有の poll 関数を呼び出す
+             *     - エラーが返されなかった場合のみ count をインクリメントする
+             */
+             if (NET_DEVICE_IS_UP(dev)) {
+                if (dev->ops->poll) {
+                  if (dev->ops->poll(dev) != -1) {
+                      count++;
+                  }
+                }
+             }
+        }
+        for (proto = protocols; proto; proto = proto->next) {
+            /*
+             * exercise: step4
+             *   プロトコルの受信キューから entry を pop してプロトコルの受信ハンドラに渡す
+             *   (1) queue_pol() を使用してキューから entry を pop する
+             *     - キューの操作は mutex をロックして実施すること（アンロック忘れに注意）
+             *     - entry が NULL（つまりキューが空）の場合は (2) 以降の処理はスキップ
+             *   (2) プロトコルの受信ハンドラを呼び出す
+             *   (3) entry は net_input_handler() 内で動的に確保されたものなのでメモリを開放する
+             *   (4) count をインクリメントする
+             */
+             pthread_mutex_lock(&proto->mutex);
+             entry = queue_pop(&proto->queue);
+             pthread_mutex_unlock(&proto->mutex);
+             if (entry) {
+                  proto->handler(entry->data, entry->len, entry->dev);
+                  free(entry);
+                  count++;
+             }
+        }
+        /*
+         * exercise: step4
+         *   count が 0 のままだったら NET_THREAD_SLEEP_TIME の時間だけスレッドを休止する
+         */
+
+        if (!count) {
+            usleep(NET_THREAD_SLEEP_TIME);
+        }
+    }
+    return NULL;
+}
+
 int
 net_run(void)
 {
@@ -223,6 +288,19 @@ net_run(void)
         net_device_open(dev);
     }
     debugf("done");
+    debugf("create background thread...");
+    /*
+     * exercise: step4
+     *   pthread_create() でスレッドを起動する
+     *     - スレッド識別子はグローバル変数 thread として定義してあるものを使用する
+     *     - スレッドのエントリポイントは net_thread()
+     *     - エラーが返されたらこの関数もエラーを返す
+     */
+    if (pthread_create(&thread, NULL, net_thread, NULL) != 0) {
+        errorf("can not create thread");
+        return -1;
+    }
+    debugf("done");
     return 0;
 }
 
@@ -230,6 +308,19 @@ void
 net_shutdown(void)
 {
     struct net_device *dev;
+
+    debugf("terminate background thread...");
+    /*
+     * exercise: step4
+     *   スレッドを終了させて回収する
+     *   (1) グローバル変数 terminate に 1 を代入する
+     *     - スレッドがループから脱して終了する
+     *   (2) pthread_join() でスレッドの終了を待ち回収する
+     *     - スレッドの終了ステータスを取得する必要はない
+     */
+    terminate = 1;
+    pthread_join(thread, NULL);
+    debugf("done");
 
     debugf("close all devices...");
     for (dev = devices; dev; dev = dev->next) {
