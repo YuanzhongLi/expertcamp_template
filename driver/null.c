@@ -33,16 +33,16 @@ null_setup(struct net_device *dev)
 struct net_device *
 null_init(void)
 {
-    struct net_deviece *dev;
+    struct net_device *dev;
 
     dev = net_device_alloc(null_setup);
     if (!dev) {
-      errorf("net_device_alloc() failure");
-      return NULL;
+        errorf("net_device_alloc() failure");
+        return NULL;
     }
     if (net_device_register(dev) == -1) {
-      errorf("net_device_register() failure");
-      return NULL;
+        errorf("net_device_register() failure");
+        return NULL;
     }
     debugf("null device initialized, dev=%s", dev->name);
     return dev;
