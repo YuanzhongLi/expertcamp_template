@@ -38,8 +38,8 @@ net_device_register(struct net_device *dev)
      * exercise: step1
      *   ネットワークデバイスのリストの先頭に挿入する
      */
-    dev.next = devices; // dev->next = 先頭
-    devices = dev;　// 先頭をdev->nextに更新
+    dev->next = devices; // dev->next = 先頭
+    devices = dev; // 先頭を更新
     infof("registerd, dev=%s, type=0x%04x", dev->name, dev->type);
     return 0;
 }
@@ -55,9 +55,17 @@ net_device_open(struct net_device *dev)
      *   (3) デバイスのフラグに NET_DEVICE_FLAG_UP をセットする
      */
     if (NET_DEVICE_IS_UP(dev)) {
-        dev->priv();
-        dev->flags = NET_DEVICE_FLAG_UP;
+        errorf("already opened, dev=%s", dev->name);
+        return -1;
     }
+
+    if (dev->ops->open) {
+        if (dev->ops->open(dev) == -1) {
+            errorf("failure, dev=%s", dev->name);
+            return -1;
+        }
+    }
+    dev->flags |= NET_DEVICE_FLAG_UP;
     infof("dev=%s, state=%s", dev->name, NET_DEVICE_STATE(dev));
     return 0;
 }
@@ -97,8 +105,7 @@ net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, si
      * exercise: step1
      *   ネットワークデバイス固有の送信関数を呼び出す
      */
-    dev->ops->transmit(dev, type, data, len, dst);
-    return 0;
+    return dev->ops->transmit(dev, type, data, len, dst);
 }
 
 int
@@ -119,10 +126,8 @@ net_run(void)
      * exercise: step1
      *   登録されている全てのネットワークデバイスをオープン
      */
-    dev = devices;
-    while (dev) {
-      dev->ops->open(dev);
-      dev = dev.next;
+    for (dev = devices; dev; dev = dev->next) {
+        net_device_open(dev);
     }
     debugf("done");
     return 0;
