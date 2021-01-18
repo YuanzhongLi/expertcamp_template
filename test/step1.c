@@ -3,14 +3,14 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include <util.h>
-#include <net.h>
+#include "util.h"
+#include "net.h"
 
 #include "driver/null.h"
 
 static uint8_t data[] = {0x45, 0x00, 0x00, 0x26,
                          0x00, 0x01, 0x00, 0x00,
-                         0xff, 0x11, 0x3c, 0xc5
+                         0xff, 0x11, 0x3c, 0xc5,
                          0x7f, 0x00, 0x00, 0x01,
                          0xff, 0xff, 0xff, 0xff,
                          0x00, 0x07, 0x00, 0x07,
@@ -45,8 +45,8 @@ main(void)
     }
     dev = null_init();
     if (!dev) {
-       errorf("dummy_init() failure");
-       return -1;
+        errorf("dummy_init() failure");
+        return -1;
     }
     if (net_run() == -1) {
         errorf("net_run() failure");

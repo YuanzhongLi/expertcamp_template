@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stirng.h>
+#include <string.h>
 #include <unistd.h>
 
-#include <util.h>
-#include <net.h>
+#include "util.h"
+#include "net.h"
 
-/*NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
+/* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct net_device *devices;
 
 struct net_device *
@@ -35,7 +35,7 @@ net_device_register(struct net_device *dev)
     snprintf(dev->name, sizeof(dev->name), "net%d", dev->index);
     /*
      * exercise: step1
-     *
+     *   ネットワークデバイスのリストの先頭に挿入する
      */
     infof("registerd, dev=%s, type=0x%04x", dev->name, dev->type);
     return 0;
@@ -46,12 +46,12 @@ net_device_open(struct net_device *dev)
 {
     /*
      * exercise: step1
-     *
-     *  (1)
-     *  (2)
-     *  (3)
+     *   ネットワークデバイスのオープン処理
+     *   (1) デバイスの状態を確認
+     *   (2) デバイス固有のオープン関数が登録されていたら呼び出す
+     *   (3) デバイスのフラグに NET_DEVICE_FLAG_UP をセットする
      */
-    iffof("dev=%s, state=%s", dev->name, NET_DEVICE_STATE(dev));
+    infof("dev=%s, state=%s", dev->name, NET_DEVICE_STATE(dev));
     return 0;
 }
 
@@ -88,15 +88,15 @@ net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, si
     debugdump(data, len);
     /*
      * exercise: step1
-     *
+     *   ネットワークデバイス固有の送信関数を呼び出す
      */
     return 0;
 }
 
 int
-net_input_handler(uint16_t type, const uint8_t *data, sizeof len, struct net_device *dev)
+net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_device *dev)
 {
-    debug("dev=%s, type=0x%04x len=%zu", dev->name, type, len);
+    debugf("dev=%s, type=0x%04x len=%zu", dev->name, type, len);
     debugdump(data, len);
     return 0;
 }
@@ -109,7 +109,7 @@ net_run(void)
     debugf("open all devices...");
     /*
      * exercise: step1
-     *
+     *   登録されている全てのネットワークデバイスをオープン
      */
     debugf("done");
     return 0;
@@ -130,7 +130,7 @@ net_shutdown(void)
 int
 net_init(void)
 {
-    /*do nothing */
+    /* do nothing */
     return 0;
 }
 

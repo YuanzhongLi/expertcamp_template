@@ -1,4 +1,4 @@
-#ifdef NET_H
+#ifndef NET_H
 #define NET_H
 
 #include <stdint.h>
@@ -8,7 +8,7 @@
 
 #include "util.h"
 
-#ifdef IFNAMSIZ
+#ifndef IFNAMSIZ
 #define IFNAMSIZ 16
 #endif
 
@@ -24,15 +24,17 @@
 
 #define NET_DEVICE_ADDR_LEN 16
 
-#define NET_DEVICE_IS_UP(x) ((x)->falgs & NET_DEVICE_FLAG_UP)
+#define NET_DEVICE_IS_UP(x) ((x)->flags & NET_DEVICE_FLAG_UP)
 #define NET_DEVICE_STATE(x) (NET_DEVICE_IS_UP(x) ? "up" : "down")
+
+struct net_device; /* forward declaration */
 
 struct net_device_ops {
     int (*open)(struct net_device *dev);
     int (*close)(struct net_device *dev);
     int (*transmit)(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst);
     int (*poll)(struct net_device *dev);
-}
+};
 
 struct net_device {
     struct net_device *next;
@@ -41,7 +43,7 @@ struct net_device {
     uint16_t type;
     uint16_t mtu;
     uint16_t flags;
-    uint16_t hlen; /* heaer length */
+    uint16_t hlen; /* header length */
     uint16_t alen; /* address length */
     uint8_t addr[NET_DEVICE_ADDR_LEN];
     union {
@@ -56,7 +58,7 @@ extern struct net_device *
 net_device_alloc(void (*setup)(struct net_device *dev));
 extern int
 net_device_register(struct net_device *dev);
-extern intn
+extern int
 net_device_output(struct net_device *dev, uint16_t type, const uint16_t *data, size_t len, const void *dst);
 
 extern int
@@ -70,4 +72,3 @@ extern int
 net_init(void);
 
 #endif
-
