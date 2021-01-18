@@ -3,12 +3,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "util.h"
 #include "net.h"
 
+struct net_protocol {
+    struct net_protocol *next;
+    char name[16];
+    uint16_t type;
+    pthread_mutex_t mutex; /* mutex for input queue */
+    struct queue_head queue; /* input queue */
+    void (*handler)(const uint8_t *data, size_t len, struct net_device *dev);
+};
+
+struct net_protocol_queue_entry {
+    struct net_device *dev;
+    size_t len;
+    uint8_t data[0];
+};
+
 /* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct net_device *devices;
+static struct net_protocol *protocols;
 
 struct net_device *
 net_device_alloc(void (*setup)(struct net_device *dev))
@@ -99,7 +116,7 @@ net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, si
         errorf("too long");
         return -1;
     }
-    debugf("dev=%s, type=0x%04x, len=%zu", dev->name, type, len);
+    debugf("dev=%s, proto=%s(0x%04x), len=%zu", dev->name, net_protocol_name(type), type, len);
     debugdump(data, len);
     /*
      * exercise: step1
@@ -111,9 +128,70 @@ net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, si
 int
 net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_device *dev)
 {
-    debugf("dev=%s, type=0x%04x len=%zu", dev->name, type, len);
-    debugdump(data, len);
+    struct net_protocol *proto;
+    struct net_protocol_queue_entry *entry;
+
+    for (proto = protocols; proto; proto = proto->next) {
+        if (proto->type == type) {
+            entry = calloc(1, sizeof(*entry) + len);
+            if (!entry) {
+                errorf("calloc() failure");
+                return -1;
+            }
+            /*
+             * exercise: step3
+             *   プロトコルの受信キューに entry を push する
+             *   (1) entry の全てのメンバに値を格納する
+             *   (2) queue_push() を使用してキューに entry を push する
+             *     - キューの操作は mutex をロックして実施すること（アンロック忘れに注意）
+             */
+             debugf("queue pushed, dev=%s, proto=%s(0x%04x) len=%zd", dev->name, proto->name, type, len);
+             debugdump(data, len);
+             return 0;
+        }
+    }
+    /* unsupported protocol */
     return 0;
+}
+
+/* NOTE: must not be call after net_run() */
+int
+net_protocol_register(const char *name, uint16_t type, void (*handler)(const uint8_t *data, size_t len, struct net_device *dev))
+{
+    struct net_protocol *proto;
+
+    /*
+     * exercise: step3
+     *   重複チェック
+     */
+    proto = calloc(1, sizeof(*proto));
+    if (!proto) {
+        errorf("calloc() failure");
+        return -1;
+    }
+    strncpy(proto->name, name, MIN(strlen(name), sizeof(proto->name)-1));
+    proto->type = type;
+    pthread_mutex_init(&proto->mutex, NULL);
+    proto->handler = handler;
+    /*
+     * exercise: step3
+     *   プロトコルのリストの先頭に挿入する
+     */
+    infof("registerd, %s (0x%04x)", proto->name, type);
+    return 0;
+}
+
+char *
+net_protocol_name(uint16_t type)
+{
+    struct net_protocol *entry;
+
+    for (entry = protocols; entry; entry = entry->next) {
+        if (entry->type == type) {
+            return entry->name;
+        }
+    }
+    return "UNKNOWN";
 }
 
 int
