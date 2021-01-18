@@ -25,6 +25,8 @@ struct {
     uint8_t *data;
 } test = {0x0800, sizeof(data), data};
 
+static volatile sig_atomic_t terminate;
+
 static void
 on_signal(int s)
 {
@@ -36,6 +38,7 @@ int
 main(void)
 {
     struct net_device *dev;
+
     signal(SIGINT, on_signal);
     if (net_init() == -1) {
         errorf("net_init() failure");
