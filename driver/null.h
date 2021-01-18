@@ -7,4 +7,3 @@ extern struct net_device *
 null_init(void);
 
 #endif
-
