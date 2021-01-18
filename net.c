@@ -145,6 +145,12 @@ net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_dev
              *   (2) queue_push() を使用してキューに entry を push する
              *     - キューの操作は mutex をロックして実施すること（アンロック忘れに注意）
              */
+            entry->dev = dev;
+            entry->len = len;
+            memcpy(entry->data, data, len);
+            pthread_mutex_lock(&proto->mutex);
+            queue_push(&proto->queue, entry);
+            pthread_mutex_unlock(&proto->mutex);
             debugf("queue pushed, dev=%s, proto=%s(0x%04x) len=%zd", dev->name, proto->name, type, len);
             debugdump(data, len);
             return 0;
@@ -164,6 +170,12 @@ net_protocol_register(const char *name, uint16_t type, void (*handler)(const uin
      * exercise: step3
      *   重複チェック
      */
+    for (proto=protocols; proto; proto=proto->next) {
+        if (strcmp(proto->name, name)) {
+            errorf("protocol already registerd");
+            return -1;
+        }
+    }
     proto = calloc(1, sizeof(*proto));
     if (!proto) {
         errorf("calloc() failure");
@@ -177,6 +189,9 @@ net_protocol_register(const char *name, uint16_t type, void (*handler)(const uin
      * exercise: step3
      *   プロトコルのリストの先頭に挿入する
      */
+
+    proto->next = protocols;
+    protocols = proto;
     infof("registerd, %s (0x%04x)", proto->name, type);
     return 0;
 }
