@@ -38,6 +38,7 @@ int
 main(void)
 {
     struct net_device *dev;
+
     signal(SIGINT, on_signal);
     if (net_init() == -1) {
         errorf("net_init() failure");
@@ -62,4 +63,3 @@ main(void)
     net_shutdown();
     return 0;
 }
-
