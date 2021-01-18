@@ -18,7 +18,7 @@ null_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, size_t
 
 static struct net_device_ops null_ops = {
     .transmit = null_transmit,
-}
+};
 
 static void
 null_setup(struct net_device *dev)
