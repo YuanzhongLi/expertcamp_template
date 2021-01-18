@@ -49,7 +49,7 @@ struct net_device {
     union {
         uint8_t peer[NET_DEVICE_ADDR_LEN];
         uint8_t broadcast[NET_DEVICE_ADDR_LEN];
-    }
+    };
     struct net_device_ops *ops;
     void *priv;
 };
@@ -59,7 +59,7 @@ net_device_alloc(void (*setup)(struct net_device *dev));
 extern int
 net_device_register(struct net_device *dev);
 extern int
-net_device_output(struct net_device *dev, uint16_t type, const uint16_t *data, size_t len, const void *dst);
+net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst);
 
 extern int
 net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_device *dev);

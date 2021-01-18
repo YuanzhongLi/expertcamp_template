@@ -31,6 +31,7 @@ int
 net_device_register(struct net_device *dev)
 {
     static unsigned int index = 0;
+
     dev->index = index++;
     snprintf(dev->name, sizeof(dev->name), "net%d", dev->index);
     /*
