@@ -72,7 +72,7 @@ extern struct net_device *
 net_device_alloc(void (*setup)(struct net_device *dev));
 extern int
 net_device_register(struct net_device *dev);
-extern  int
+extern int
 net_device_add_iface(struct net_device *dev, struct net_iface *iface);
 extern struct net_iface *
 net_device_get_iface(struct net_device *dev, int family);

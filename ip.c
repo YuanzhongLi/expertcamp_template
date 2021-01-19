@@ -106,7 +106,7 @@ ip_iface_alloc(const char *unicast, const char *netmask)
         return NULL;
     }
     iface = calloc(1, sizeof(*iface));
-    if (!face) {
+    if (!iface) {
         errorf("calloc() failure");
         return NULL;
     }
@@ -131,11 +131,15 @@ ip_iface_register(struct net_device *dev, struct ip_iface *iface)
      *   (1) dev に iface を追加する
      *   (2) IPインタフェースのリスト（ifaces）の先頭に追加
      */
-    ip_iface->iface->dev = dev;
-    ip_iface->next = ifaces;
-    ifaces = ip_iface;
+    if (!net_device_add_iface(dev, iface)) {
+        errorf("net_device_add_iface() failure");
+        return -1;
+    }
+    iface->next = ifaces;
+    ifaces = iface;
 
-    infof("registerd: dev=%s, unicast=%s netmask=%s", dev->name, ip_addr_ntop(iface->unicast, addr1, sizeof(addr1)), ip_addr_ntop(iface->netmask, addr2, sizeof(addr2)));
+    infof("registerd: dev=%s, unicast=%s netmask=%s",
+        dev->name, ip_addr_ntop(iface->unicast, addr1, sizeof(addr1)), ip_addr_ntop(iface->netmask, addr2, sizeof(addr2)));
     return 0;
 }
 
@@ -198,7 +202,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     iface = (struct ip_iface *)net_device_get_iface(dev, NET_IFACE_FAMILY_IPV4);
     if (!iface) {
         /* IP interface is not registered to the device */
-        return ;
+        return;
     }
 
     debugf("dev=%s, len=%zd", dev->name, len);

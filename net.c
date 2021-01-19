@@ -130,7 +130,8 @@ net_device_add_iface(struct net_device *dev, struct net_iface *iface)
 }
 
 struct net_iface *
-net_device_get_iface(struct net_device *dev, int family) {
+net_device_get_iface(struct net_device *dev, int family)
+{
     struct net_iface *entry;
 
     for (entry = dev->ifaces; entry; entry = entry->next) {
@@ -369,5 +370,3 @@ net_init(void)
     }
     return 0;
 }
-
-

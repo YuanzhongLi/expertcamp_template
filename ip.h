@@ -23,7 +23,7 @@ struct ip_iface {
     struct net_iface iface;
     struct ip_iface *next;
     ip_addr_t unicast;
-    ip_addr_t netmastk;
+    ip_addr_t netmask;
     ip_addr_t broadcast;
 };
 
