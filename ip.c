@@ -25,8 +25,7 @@ struct ip_hdr {
 const ip_addr_t IP_ADDR_ANY       = 0x00000000; /* 0.0.0.0 */
 const ip_addr_t IP_ADDR_BROADCAST = 0xffffffff; /* 255.255.255.255 */
 
-/* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists wi
-th a mutex. */
+/* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct ip_iface *ifaces;
 
 int
@@ -147,6 +146,19 @@ ip_iface_register(struct net_device *dev, struct ip_iface *iface)
     return 0;
 }
 
+struct ip_iface *
+ip_iface_by_addr(ip_addr_t addr)
+{
+    struct ip_iface *entry;
+
+    for (entry = ifaces; entry; entry = entry->next) {
+        if (entry->unicast == addr) {
+            break;
+        }
+    }
+    return entry;
+}
+
 static void
 ip_input(const uint8_t *data, size_t len, struct net_device *dev)
 {
@@ -228,6 +240,81 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
 
     debugf("dev=%s, iface=%s, len=%zd", dev->name, ip_addr_ntop(iface->unicast, addr, sizeof(addr)), len);
     ip_dump(data, len);
+}
+
+static int
+ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_addr_t dst)
+{
+    uint8_t hwaddr[NET_DEVICE_ADDR_LEN] = {};
+    char addr[IP_ADDR_STR_LEN];
+
+    if (NET_IFACE(iface)->dev->flags & NET_DEVICE_FLAG_NEED_ARP) {
+        if (dst == iface->broadcast || dst == IP_ADDR_BROADCAST) {
+            memcpy(hwaddr, NET_IFACE(iface)->dev->broadcast, NET_IFACE(iface)->dev->alen);
+        } else {
+            errorf("arp does not implement");
+            return -1;
+        }
+    }
+    debugf("dev=%s, iface=%s, len=%zu", NET_IFACE(iface)->dev->name, ip_addr_ntop(dst, addr, sizeof(addr)), len);
+    ip_dump(data, len);
+    /*
+     * exercise: step7
+     *   デバイスにIPデータグラムを出力する
+     */
+
+}
+
+static ssize_t
+ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, uint16_t id, uint16_t offset)
+{
+    uint8_t buf[IP_DGRAM_SIZE_MAX];
+    struct ip_hdr *hdr;
+    uint16_t hlen;
+
+    hdr = (struct ip_hdr *)buf;
+    /*
+     * exercise: step7
+     *   IPデータグラムの生成
+     *   (1) IPヘッダの各フィールドに値を設定（tosフィールドは0とする）
+     *     - バイトオーダーの考慮を忘れずに
+     *   (2) IPヘッダの後ろにデータを格納する
+     */
+    return ip_output_device(iface, buf, hlen + len, dst);
+}
+
+static uint16_t
+ip_generate_id(void)
+{
+    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    static uint16_t id = 128;
+    uint16_t ret;
+    pthread_mutex_unlock(&mutex);
+    return ret;
+}
+
+ssize_t
+ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
+{
+    struct ip_iface *iface;
+    uint16_t id;
+
+    /*
+     * exercise: step7
+     *   (1) 引数で指定された送信元アドレスと一致するIPインタフェースを取得する
+     *     - 取得できなかったらエラーを返す
+     *   (2) 宛先アドレスに到達可能か確認する
+     *     - 以下のどちらにも合致しなかったら送信できないのでエラーを返す
+     *       a. - 宛先アドレスがブロードキャストアドレスである
+     *       b. - IPインタフェースと同じサブネットワークに属するアドレスである
+     *   (3) IPデータグラムのサイズがデバイスのMTUを超える場合はフラグメント化が必要
+     *     - 今回は実装しないのでエラーを返す
+     */
+    id = ip_generate_id();
+    if (ip_output_core(iface, protocol, data, len, iface->unicast, dst, id, 0) == -1) {
+        return -1;
+    }
+    return len;
 }
 
 int
