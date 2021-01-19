@@ -28,13 +28,6 @@ struct {
 static volatile sig_atomic_t terminate;
 
 static void
-dummy_handler(const uint8_t *data, size_t len, struct net_device *dev)
-{
-    debugf("dev=%s, len=%zd", dev->name, len);
-    debugdump(data, len);
-}
-
-static void
 on_signal(int s)
 {
     (void)s;
@@ -49,10 +42,6 @@ main(void)
     signal(SIGINT, on_signal);
     if (net_init() == -1) {
         errorf("net_init() failure");
-        return -1;
-    }
-    if (net_protocol_register("DUMMY", test.type, dummy_handler) == -1) {
-        errorf("net_protocol_register() failure");
         return -1;
     }
     dev = loopback_init();

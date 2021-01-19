@@ -13,7 +13,7 @@
 #define IP_PAYLOAD_SIZE_MAX (IP_DGRAM_SIZE_MAX - IP_HDR_SIZE_MIN)
 
 #define IP_ADDR_LEN 4
-#define IP_ADDR_STR_LEN 16 /* #ddd.ddd.ddd.ddd\0" */
+#define IP_ADDR_STR_LEN 16 /* "ddd.ddd.ddd.ddd\0" */
 
 typedef uint32_t ip_addr_t;
 
