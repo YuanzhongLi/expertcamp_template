@@ -8,6 +8,13 @@
 #include "net.h"
 #include "ip.h"
 
+struct ip_protocol {
+    struct ip_protocol *next;
+    char name[16];
+    uint8_t type;
+    void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst);
+};
+
 struct ip_hdr {
     uint8_t vhl;
     uint8_t tos;
@@ -27,6 +34,7 @@ const ip_addr_t IP_ADDR_BROADCAST = 0xffffffff; /* 255.255.255.255 */
 
 /* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct ip_iface *ifaces;
+static struct ip_protocal *protocols;
 
 int
 ip_addr_pton(const char *p, ip_addr_t *n)
@@ -159,12 +167,27 @@ ip_iface_by_addr(ip_addr_t addr)
     return entry;
 }
 
+/* NOTE: must not be call after net_run() */
+int
+ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst))
+{
+    struct ip_protocol *entry;
+
+    /*
+     * exercise: step8
+     *   上位プロトコルの登録
+     */
+    infof("registerd: %s (%u)", entry->name, entry->type);
+    return 0;
+}
+
 static void
 ip_input(const uint8_t *data, size_t len, struct net_device *dev)
 {
     struct ip_hdr *hdr;
     struct ip_iface *iface;
     char addr[IP_ADDR_STR_LEN];
+    struct ip_protocol *proto;
 
     /*
      * exercise: step5
@@ -179,7 +202,6 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
      *     d. ttl（ttl が 0 ではない）
      *     c. チェックサム（チェックサムを再計算した結果が0である）
      */
-
     if (len < IP_HDR_SIZE_MIN) {
         errorf("IP header size is too small");
         return;
@@ -240,6 +262,15 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
 
     debugf("dev=%s, iface=%s, len=%zd", dev->name, ip_addr_ntop(iface->unicast, addr, sizeof(addr)), len);
     ip_dump(data, len);
+    for (proto = protocols; proto; proto = proto->next) {
+        if (proto->type == hdr->protocol) {
+            proto->handler((uint8_t *)hdr + hlen, len  -  hlen, hdr->src, hdr->dst);
+            break;
+        }
+    }
+    if (!proto) {
+        /* protocol not found */
+    }
 }
 
 static int

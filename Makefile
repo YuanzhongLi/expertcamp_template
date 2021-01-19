@@ -7,6 +7,7 @@ TEST = test/step1.exe \
 			 test/step5.exe \
 			 test/step6.exe \
 			 test/step7.exe \
+			 test/step8.exe \
 
 DRIVERS = driver/null.o \
           driver/loopback.o \
