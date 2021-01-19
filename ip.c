@@ -177,7 +177,7 @@ ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8
      * exercise: step8
      *   上位プロトコルの登録
      */
-    for (entry = protocols; entry; entry->next) {
+    for (entry = protocols; entry; entry = entry->next) {
         if (entry->type == type) {
             errorf("IP protocol already exsit");
             return -1;
