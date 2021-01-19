@@ -262,7 +262,7 @@ ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_add
      * exercise: step7
      *   デバイスにIPデータグラムを出力する
      */
-
+    return net_device_output(NET_IFACE(iface)->dev, NET_PROTOCOL_TYPE_IP, data, len, dst);
 }
 
 static ssize_t
@@ -280,6 +280,20 @@ ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, si
      *     - バイトオーダーの考慮を忘れずに
      *   (2) IPヘッダの後ろにデータを格納する
      */
+    hlen = IP_HDR_SIZE_MIN;
+    hdr->vhl = (IP_VERSION_IPV4<<4) | (hlen>>2);
+    hdr->tos = 0;
+    hdr->total = hton16(hlen + len);
+    hdr->id = hton16(id);
+    hdr->offset = hton16(offset);
+    hdr->ttl = 255;
+    hdr->protocol = protocol;
+    hdr->sum = 0;
+    hdr->src = src;
+    hdr->dst = dst;
+    hdr->sum = cksum16((uint16_t *)hdr, hlen, 0);
+    memcpy(hdr+1, data, len);
+
     return ip_output_device(iface, buf, hlen + len, dst);
 }
 
@@ -289,6 +303,9 @@ ip_generate_id(void)
     static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
     static uint16_t id = 128;
     uint16_t ret;
+
+    pthread_mutex_lock(&mutex);
+    ret = id++;
     pthread_mutex_unlock(&mutex);
     return ret;
 }
@@ -310,6 +327,23 @@ ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_a
      *   (3) IPデータグラムのサイズがデバイスのMTUを超える場合はフラグメント化が必要
      *     - 今回は実装しないのでエラーを返す
      */
+    iface = ip_iface_by_addr(src);
+    if (!iface) {
+        errorf("not match iface");
+        return -1;
+    }
+    if (dst != IP_ADDR_BROADCAST) {
+        if (dst != iface->broadcast) {
+            if ((dst & iface->netmask) != (iface->unicast & iface->netmask)) {
+                errorf("can not achieve destination");
+                return -1;
+            }
+        }
+    }
+    if (NET_IFACE(iface)->dev->mtu < len + IP_HDR_SIZE_MIN) {
+        errorf("data size is larger than MTU");
+        return -1;
+    }
     id = ip_generate_id();
     if (ip_output_core(iface, protocol, data, len, iface->unicast, dst, id, 0) == -1) {
         return -1;
