@@ -116,6 +116,10 @@ ip_iface_alloc(const char *unicast, const char *netmask)
      *   ifaceの次のメンバに値を設定
      *     - unicast, netmask, broadcast
      */
+    ip_addr_pton(unicast, &(iface->unicast));
+    ip_addr_pton(netmask, &(iface->netmask));
+    iface->broadcast = iface->unicast | (~iface->netmask);
+
     return iface;
 }
 
@@ -131,7 +135,7 @@ ip_iface_register(struct net_device *dev, struct ip_iface *iface)
      *   (1) dev に iface を追加する
      *   (2) IPインタフェースのリスト（ifaces）の先頭に追加
      */
-    if (!net_device_add_iface(dev, iface)) {
+    if (net_device_add_iface(dev, iface) == -1) {
         errorf("net_device_add_iface() failure");
         return -1;
     }
@@ -204,8 +208,6 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
         /* IP interface is not registered to the device */
         return;
     }
-
-    debugf("dev=%s, len=%zd", dev->name, len);
     /*
      * exercise: step6
      *   パケットのフィルタリング
@@ -214,6 +216,16 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
      *     - インタフェースのブロードキャストIPアドレスと一致する
      *     - グローバルなブロードキャストIPアドレス（255.255.255.255）と一致する
      */
+    ip_addr_t dst;
+    dst = hdr->dst;
+    if (dst != iface->unicast) {
+        if (dst != iface->broadcast) {
+            if (dst != IP_ADDR_BROADCAST) {
+                return; /* 他あてなので処理しない */
+            }
+        }
+    }
+
     debugf("dev=%s, iface=%s, len=%zd", dev->name, ip_addr_ntop(iface->unicast, addr, sizeof(addr)), len);
     ip_dump(data, len);
 }
