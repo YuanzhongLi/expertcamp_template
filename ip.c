@@ -73,7 +73,7 @@ ip_dump(const uint8_t *data, size_t len)
     v = (hdr->vhl & 0xf0) >> 4;
     hl = hdr->vhl & 0x0f;
     hlen = hl << 2;
-    fprintf(stderr, "       vhl: 0x%02x [v: &u, hl: %u (%u)]\n", hdr->vhl, v, hl, hlen);
+    fprintf(stderr, "       vhl: 0x%02x [v: %u, hl: %u (%u)]\n", hdr->vhl, v, hl, hlen);
     fprintf(stderr, "       tos: 0x%02x\n", hdr->tos);
     total = ntoh16(hdr->total);
     fprintf(stderr, "     total: %u (payload: %u)\n", total, total - hlen);
@@ -110,6 +110,42 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
      *     d. ttl（ttl が 0 ではない）
      *     c. チェックサム（チェックサムを再計算した結果が0である）
      */
+
+    if (len < IP_HDR_SIZE_MIN) {
+        errorf("IP header size is too small");
+        return;
+    }
+
+    uint8_t v, hl, hlen, ttl;
+    uint16_t total;
+    hdr = (struct ip_hdr *)data;
+    v = (hdr->vhl & 0xf0) >> 4;
+    hl = hdr->vhl & 0x0f;
+    hlen = hl<<2;
+    ttl = hdr->ttl;
+    total = ntoh16(hdr->total);
+
+    if (v != IP_VERSION_IPV4) {
+        errorf("IP is not IPV4");
+        return;
+    }
+    if (len < hlen) {
+        errorf("len is less than hlen");
+        return;
+    }
+    if (len < total) {
+        errorf("len is less than total");
+        return;
+    }
+    if (ttl == 0) {
+        errorf("ttl is zero");
+        return;
+    }
+    if (cksum16((uint16_t *)data, hlen, 0) != 0) {
+        errorf("checksome error");
+        return;
+    }
+
     debugf("dev=%s, len=%zd", dev->name, len);
     ip_dump(data, len);
 }
@@ -121,5 +157,6 @@ ip_init(void)
      * exercise: step5
      *   プロトコルスタック本体にIPを登録
      */
+    net_protocol_register("IPV4", NET_PROTOCOL_TYPE_IP, ip_input);
     return 0;
 }
