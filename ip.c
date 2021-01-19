@@ -135,7 +135,7 @@ ip_iface_register(struct net_device *dev, struct ip_iface *iface)
      *   (1) dev に iface を追加する
      *   (2) IPインタフェースのリスト（ifaces）の先頭に追加
      */
-    if (net_device_add_iface(dev, iface) == -1) {
+    if (net_device_add_iface(dev, (struct net_iface *)iface) == -1) {
         errorf("net_device_add_iface() failure");
         return -1;
     }
