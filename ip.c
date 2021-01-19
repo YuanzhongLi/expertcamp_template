@@ -34,7 +34,7 @@ const ip_addr_t IP_ADDR_BROADCAST = 0xffffffff; /* 255.255.255.255 */
 
 /* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct ip_iface *ifaces;
-static struct ip_protocal *protocols;
+static struct ip_protocol *protocols;
 
 int
 ip_addr_pton(const char *p, ip_addr_t *n)
@@ -177,6 +177,23 @@ ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8
      * exercise: step8
      *   上位プロトコルの登録
      */
+    for (entry = protocols; entry; entry->next) {
+        if (entry->type == type) {
+            errorf("IP protocol already exsit");
+            return -1;
+        }
+    }
+    entry = calloc(1, sizeof(*entry));
+    if (!entry) {
+        errorf("calloc() failure");
+        return -1;
+    }
+    strncpy(entry->name, name, MIN(strlen(name), sizeof(entry->name)-1));
+    entry->type = type;
+    entry->handler = handler;
+
+    entry->next = protocols;
+    protocols = entry;
     infof("registerd: %s (%u)", entry->name, entry->type);
     return 0;
 }
@@ -264,7 +281,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     ip_dump(data, len);
     for (proto = protocols; proto; proto = proto->next) {
         if (proto->type == hdr->protocol) {
-            proto->handler((uint8_t *)hdr + hlen, len  -  hlen, hdr->src, hdr->dst);
+            proto->handler((uint8_t *)hdr + hlen, len - hlen, hdr->src, hdr->dst);
             break;
         }
     }
