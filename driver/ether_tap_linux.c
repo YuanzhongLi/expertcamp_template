@@ -18,8 +18,7 @@
 struct ether_tap {
     char name[IFNAMSIZ];
     int fd;
-    uint8_t addr[ETHER_ADDR_LEN];
-}
+};
 
 #define PRIV(x) ((struct ether_tap *)x->priv)
 
@@ -37,7 +36,7 @@ ether_tap_addr(struct net_device *dev)
     ifr.ifr_addr.sa_family = AF_INET;
     strncpy(ifr.ifr_name, PRIV(dev)->name, sizeof(ifr.ifr_name) - 1);
     if (ioctl(soc, SIOCGIFHWADDR, &ifr) == -1) {
-        errorf("ioctl  [SIOCGIFHWADDR]: %s", strerror(errno));
+        errorf("ioctl [SIOCGIFHWADDR]: %s", strerror(errno));
         close(soc);
         return -1;
     }
@@ -68,12 +67,12 @@ ether_tap_open(struct net_device *dev)
     if (memcmp(dev->addr, ETHER_ADDR_ANY, ETHER_ADDR_LEN) == 0) {
         if (ether_tap_addr(dev) == -1) {
             errorf("ether_tap_addr() failure");
-            close(tap->id);
+            close(tap->fd);
             return -1;
         }
     }
     return 0;
-}
+};
 
 static int
 ether_tap_close(struct net_device *dev)
@@ -101,10 +100,10 @@ ether_tap_read(struct net_device *dev, uint8_t *buf, size_t size)
 
     len = read(PRIV(dev)->fd, buf, size);
     if (len <= 0) {
-      if (len == -1 && errno != EINTR) {
-          errorf("read: %s", strerror(errno));
-      }
-      return -1;
+        if (len == -1 && errno != EINTR) {
+            errorf("read: %s", strerror(errno));
+        }
+        return -1;
     }
     return len;
 }
@@ -112,7 +111,7 @@ ether_tap_read(struct net_device *dev, uint8_t *buf, size_t size)
 static int
 ether_tap_poll(struct net_device *dev)
 {
-    struct pllfd pfd;
+    struct pollfd pfd;
     int ret;
 
     pfd.fd = PRIV(dev)->fd;
@@ -155,7 +154,7 @@ ether_tap_init(const char *name, const char *addr)
     strncpy(tap->name, name, sizeof(tap->name)-1);
     tap->fd = -1;
     if (addr) {
-        if (ether_addr_pton(addr, tap->addr) == -1) {
+        if (ether_addr_pton(addr, dev->addr) == -1) {
             errorf("invalid address, %s", addr);
             free(tap);
             return NULL;
@@ -169,8 +168,10 @@ ether_tap_init(const char *name, const char *addr)
      *   (3) デバイス固有のプライベートな情報として tap のアドレスを格納する
      *   (4) ネットワークデバイスをプロトコルスタックに登録する
      */
-    dev = calloc(1, sizeof(*dev));
-    dev
+    dev = net_device_alloc(ether_setup_helper)
+    dev->ops = &ether_tap_ops;
+    dev->priv = (void *)tap;
+    net_device_register(dev);
     debugf("loopback device initialized, dev=%s", dev->name);
     return dev;
 }

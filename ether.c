@@ -106,6 +106,7 @@ ether_transmit_helper(struct net_device *dev, uint16_t type, const uint8_t *data
     hdr->type = hton16(type);
     memset(hdr+1, 0, ETHER_PAYLOAD_SIZE_MIN);
     memcpy(hdr+1, data, len);
+    flen = MAX(flen, sizeof(*hdr) + ETHER_PAYLOAD_SIZE_MIN);
 
     debugf("%zd bytes data to <%s>", flen, dev->name);
     ether_dump(frame, flen);
@@ -114,7 +115,7 @@ ether_transmit_helper(struct net_device *dev, uint16_t type, const uint8_t *data
      *   引数として渡されたコールバック関数を呼び出す
      *     - コールバック関数の戻り値が送信フレームサイズと一致する場合は 0, そうでない場合は -1 を戻り値として返す
      */
-    if (callback(dev,  frame, flen) != flen) {
+    if (callback(dev, frame, flen) != flen) {
         return -1;
     }
     return 0;
@@ -153,11 +154,11 @@ ether_poll_helper(struct net_device *dev, ssize_t (*callback)(struct net_device 
      *   プロトコルスタック本体の入力ハンドラを呼び出す
      *     - 入力ハンドラの戻り値をこの関数の戻り値としてそのまま返す
      */
-
-    return 0;
+    return net_input_handler(hdr->type, frame, flen, dev);
 }
 
-void ether_setup_helper(struct net_device *dev)
+void
+ether_setup_helper(struct net_device *dev)
 {
     dev->type = NET_DEVICE_TYPE_ETHERNET;
     dev->mtu = ETHER_PAYLOAD_SIZE_MAX;
