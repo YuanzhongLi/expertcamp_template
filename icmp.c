@@ -94,6 +94,7 @@ icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
      *     a. 受信データサイズ検証
      *     b. チェックサム検証
      */
+    hdr = (struct icmp_hdr *)data;
     if (len > ICMP_BUFSIZ) {
         errorf("icmp size is too large");
         return;
@@ -121,7 +122,7 @@ icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 }
 
 int
-icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
+icmp_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 {
     uint8_t buf[ICMP_BUFSIZ];
     struct icmp_hdr *hdr;
@@ -150,7 +151,7 @@ icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t l
      *   IPの送信関数を呼び出してICMPメッセージの送信を依頼する
      *     - IPの送信関数の戻り値をこの関数の戻り値としてそのまま返す
      */
-    ip_output(IP_PROTOCOL_ICMP, buf, msg_len, src, dst);
+    return ip_output(IP_PROTOCOL_ICMP, buf, msg_len, src, dst);
 }
 
 int
