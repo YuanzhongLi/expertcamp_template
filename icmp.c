@@ -135,13 +135,12 @@ icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t l
      *   ICMPメッセージの生成
      */
     msg_len = sizeof(*hdr)+len;
-    hdr = calloc(1, sizeof(*hdr));
     hdr->type = type;
     hdr->code = code;
     hdr->sum = 0;
     hdr->values = hton32(values);
     memcpy(hdr+1, data, len);
-    hdr->sum = cksum16((uint16_t *)hdr, sizeof(*hdr)+len, 0);
+    hdr->sum = cksum16((uint16_t *)hdr, msg_len, 0);
 
     debugf("%s => %s, %s",
         ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)), icmp_type_ntoa(hdr->type));
@@ -151,7 +150,7 @@ icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t l
      *   IPの送信関数を呼び出してICMPメッセージの送信を依頼する
      *     - IPの送信関数の戻り値をこの関数の戻り値としてそのまま返す
      */
-    ip_output(IP_PROTOCOL_ICMP, hdr, msg_len, src, dst);
+    ip_output(IP_PROTOCOL_ICMP, buf, msg_len, src, dst);
 }
 
 int
