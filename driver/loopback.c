@@ -13,7 +13,6 @@
  * exercise: step2
  *   Loopbackデバイスを実装
  */
-
 static int
 loopback_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst)
 {
