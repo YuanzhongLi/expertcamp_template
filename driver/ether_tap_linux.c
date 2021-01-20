@@ -153,13 +153,6 @@ ether_tap_init(const char *name, const char *addr)
     }
     strncpy(tap->name, name, sizeof(tap->name)-1);
     tap->fd = -1;
-    if (addr) {
-        if (ether_addr_pton(addr, dev->addr) == -1) {
-            errorf("invalid address, %s", addr);
-            free(tap);
-            return NULL;
-        }
-    }
     /*
      * exercise: step10
      *   (1) ネットワークデバイスのためのメモリをアロケートする
@@ -168,10 +161,18 @@ ether_tap_init(const char *name, const char *addr)
      *   (3) デバイス固有のプライベートな情報として tap のアドレスを格納する
      *   (4) ネットワークデバイスをプロトコルスタックに登録する
      */
-    dev = net_device_alloc(ether_setup_helper)
+    dev = net_device_alloc(ether_setup_helper);
     dev->ops = &ether_tap_ops;
     dev->priv = (void *)tap;
+    if (addr) {
+        if (ether_addr_pton(addr, dev->addr) == -1) {
+            errorf("invalid address, %s", addr);
+            free(tap);
+            return NULL;
+        }
+    }
+
     net_device_register(dev);
-    debugf("loopback device initialized, dev=%s", dev->name);
+    debugf("ethernet device initialized, dev=%s", dev->name);
     return dev;
 }

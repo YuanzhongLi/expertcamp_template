@@ -115,7 +115,7 @@ ether_transmit_helper(struct net_device *dev, uint16_t type, const uint8_t *data
      *   引数として渡されたコールバック関数を呼び出す
      *     - コールバック関数の戻り値が送信フレームサイズと一致する場合は 0, そうでない場合は -1 を戻り値として返す
      */
-    if (callback(dev, frame, flen) != flen) {
+    if (callback(dev, frame, flen) != (ssize_t)flen) {
         return -1;
     }
     return 0;
