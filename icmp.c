@@ -7,13 +7,13 @@
 #include "ip.h"
 #include "icmp.h"
 
-#define ICMP_BUFSIZE IP_PAYLOAD_SIZE_MAX
+#define ICMP_BUFSIZ IP_PAYLOAD_SIZE_MAX
 
 struct icmp_hdr {
     uint8_t type;
     uint8_t code;
     uint16_t sum;
-    uint32_t spec;
+    uint32_t values;
 };
 
 struct icmp_echo {
@@ -26,7 +26,7 @@ struct icmp_echo {
 
 static char *
 icmp_type_ntoa(uint8_t type) {
-    switch(type) {
+    switch (type) {
     case ICMP_TYPE_ECHOREPLY:
         return "Echo Reply";
     case ICMP_TYPE_DEST_UNREACH:
@@ -62,10 +62,9 @@ icmp_dump(const uint8_t *data, size_t len)
     flockfile(stderr);
     hdr = (struct icmp_hdr *)data;
     fprintf(stderr, "    type: %u (%s)\n", hdr->type, icmp_type_ntoa(hdr->type));
-    fprintf(stderr, "    code:  %u\n", hdr->code);
+    fprintf(stderr, "    code: %u\n", hdr->code);
     fprintf(stderr, "     sum: 0x%04x\n", ntoh16(hdr->sum));
-    switch (hdr->type)
-    {
+    switch (hdr->type) {
     case ICMP_TYPE_ECHOREPLY:
     case ICMP_TYPE_ECHO:
         echo = (struct icmp_echo *)hdr;
@@ -95,7 +94,7 @@ icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
      *     a. 受信データサイズ検証
      *     b. チェックサム検証
      */
-    if (len > ICMP_BUFSIZE) {
+    if (len > ICMP_BUFSIZ) {
         errorf("icmp size is too large");
         return;
     }
@@ -121,9 +120,10 @@ icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
     }
 }
 
-int icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
+int
+icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 {
-    uint8_t buf[ICMP_BUFSIZE];
+    uint8_t buf[ICMP_BUFSIZ];
     struct icmp_hdr *hdr;
     size_t msg_len;
     char addr1[IP_ADDR_STR_LEN];
@@ -139,7 +139,7 @@ int icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size
     hdr->type = type;
     hdr->code = code;
     hdr->sum = 0;
-    hdr->spec = hton32(values);
+    hdr->values = hton32(values);
     memcpy(hdr+1, data, len);
     hdr->sum = cksum16((uint16_t *)hdr, sizeof(*hdr)+len, 0);
 
@@ -154,7 +154,8 @@ int icpm_output(uint8_t type, uint8_t code, uint32_t values, uint8_t *data, size
     ip_output(IP_PROTOCOL_ICMP, hdr, msg_len, src, dst);
 }
 
-int icmp_init(void)
+int
+icmp_init(void)
 {
     /*
      * exercise: step9

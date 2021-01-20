@@ -361,11 +361,15 @@ net_shutdown(void)
 }
 
 #include "ip.h"
+#include "icmp.h"
 
 int
 net_init(void)
 {
     if (ip_init() == -1) {
+        return -1;
+    }
+    if (icmp_init() == -1) {
         return -1;
     }
     return 0;
