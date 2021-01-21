@@ -196,7 +196,7 @@ arp_request(struct net_iface *iface, ip_addr_t tpa)
     memcpy(request.sha, iface->dev->addr, sizeof(request.sha));
     memcpy(request.spa, (uint8_t *)(&(ip_iface->unicast)), sizeof(request.spa));
     /* tha do not care (0) */
-    memcpy(request.tha, 0, sizeof(request.tha));
+    memset(request.tha, 0, sizeof(request.tha));
     memcpy(request.tpa, (uint8_t *)&tpa, sizeof(request.tpa));
 
 
@@ -244,6 +244,7 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
     return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)(&reply), sizeof(reply), dst);
 }
 
+int
 arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
 {
     struct arp_entry *entry;
@@ -283,7 +284,7 @@ arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
     entry->pa = pa; // (3)
     gettimeofday(&entry->timestamp, NULL); // (4)
     pthread_mutex_unlock(&mutex);
-    arp_request(iface, entry->pa); // (5)
+    arp_request(iface, pa); // (5)
 
     return ARP_RESOLVE_QUERY;
 }

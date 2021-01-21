@@ -308,7 +308,7 @@ ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_add
              *   arp_resolve() を呼び出してアドレス解決
              *     - 戻り値が ARP_RESOLVE_FOUND でなければその値をこの関数の戻り値として終了する
              */
-            ret = arp_resolve(iface, dst, hwaddr);
+            ret = arp_resolve((struct net_iface *)iface, dst, hwaddr);
             if (ret != ARP_RESOLVE_FOUND) {
                 return ret;
             }
