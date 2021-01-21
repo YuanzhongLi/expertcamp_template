@@ -31,7 +31,8 @@
 
 #define NET_IFACE(x) ((struct net_iface *)(x))
 
-#define NET_PROTOCOL_TYPE_IP 0x0800
+#define NET_PROTOCOL_TYPE_IP  0x0800
+#define NET_PROTOCOL_TYPE_ARP 0x0806
 
 struct net_device; /* forward declaration */
 

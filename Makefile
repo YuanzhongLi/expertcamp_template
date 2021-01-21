@@ -10,6 +10,7 @@ TEST = test/step1.exe \
 			 test/step8.exe \
 			 test/step9.exe \
 			 test/step10.exe \
+			 test/step11.exe \
 
 DRIVERS = driver/null.o \
           driver/loopback.o \
@@ -17,6 +18,7 @@ DRIVERS = driver/null.o \
 OBJS = util.o \
        net.o \
 			 ether.o \
+			 arp.o \
 			 ip.o \
 			 icmp.o \
 
