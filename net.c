@@ -208,7 +208,7 @@ net_protocol_register(const char *name, uint16_t type, void (*handler)(const uin
      *   重複チェック
      */
     for (proto=protocols; proto; proto=proto->next) {
-        if (strcmp(proto->name, name)) {
+        if (proto->type == type) {
             errorf("protocol already registerd");
             return -1;
         }
@@ -226,7 +226,6 @@ net_protocol_register(const char *name, uint16_t type, void (*handler)(const uin
      * exercise: step3
      *   プロトコルのリストの先頭に挿入する
      */
-
     proto->next = protocols;
     protocols = proto;
     infof("registerd, %s (0x%04x)", proto->name, type);

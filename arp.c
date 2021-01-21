@@ -193,9 +193,9 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
     struct ip_iface *ip_iface;
     ip_iface = (struct ip_iface *)iface;
     memcpy(reply.sha, iface->dev->addr, sizeof(reply.sha));
-    memcpy(reply.spa, hton32(ip_iface->unicast), sizeof(reply.spa));
+    memcpy(reply.spa, (uint8_t *)(&(ip_iface->unicast)), sizeof(reply.spa));
     memcpy(reply.tha, tha, sizeof(reply.tha));
-    memcpy(reply.tpa, tpa, sizeof(reply.tpa));
+    memcpy(reply.tpa, (uint8_t *)&tpa, sizeof(reply.tpa));
 
 
     debugf("%zd bytes data to <%s>", sizeof(reply), iface->dev->name);
@@ -205,7 +205,7 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
      *   デバイスから送信
      *     - 呼び出した関数の戻り値をこの関数の戻り値としてそのまま返す
      */
-    return iface->dev->ops->transmit(iface->dev, ETHER_TYPE_ARP, (uint8_t *)(&reply), sizeof(reply), dst);
+    return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)(&reply), sizeof(reply), dst);
 }
 
 static void
@@ -227,16 +227,15 @@ arp_input(const uint8_t *data, size_t len, struct net_device *dev)
      * exercise: step11
      *   RFC記載の手順で受信処理（RFC826 - Section: Packet Reception）
      */
-    if (msg->hdr.hrd != ARP_HRD_ETHER) {
+    if (ntoh16(msg->hdr.hrd) != ARP_HRD_ETHER) {
         debugf("ha is not ether");
-        return NULL;
+        return;
     }
-    if (msg->hdr.pro != ARP_PRO_IP) {
+    if (ntoh16(msg->hdr.pro) != ARP_PRO_IP) {
         debugf("protocol is not IPV4");
-        return NULL;
+        return;
     }
 
-    ip_addr_t spa, tpa;
     memcpy(&spa, msg->spa, sizeof(spa));
     memcpy(&tpa, msg->tpa, sizeof(tpa));
 
@@ -250,7 +249,6 @@ arp_input(const uint8_t *data, size_t len, struct net_device *dev)
     }
 
     // Am I the target proto
-    struct net_iface *iface;
     iface = net_device_get_iface(dev, NET_IFACE_FAMILY_IPV4);
     if (iface) {
         if (!merge) {

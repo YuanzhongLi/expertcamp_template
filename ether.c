@@ -154,7 +154,7 @@ ether_poll_helper(struct net_device *dev, ssize_t (*callback)(struct net_device 
      *   プロトコルスタック本体の入力ハンドラを呼び出す
      *     - 入力ハンドラの戻り値をこの関数の戻り値としてそのまま返す
      */
-    return net_input_handler(hdr->type, frame, flen, dev);
+    return net_input_handler(ntoh16(hdr->type),  (uint8_t *)(hdr+1), flen - sizeof(*hdr), dev);
 }
 
 void
