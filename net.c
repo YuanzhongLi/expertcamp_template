@@ -81,6 +81,10 @@ net_timer_register(const char *name, struct timeval interval, void (*handler)(vo
     gettimeofday(&now, NULL);
     timer->last = now; /* initial timer last is timer created timestamp */
 
+    /* listの先頭についか */
+    timer->next = timers;
+    timers = timer;
+
     infof("registerd: %s interval={%d, %d}", timer->name, interval.tv_sec, interval.tv_usec);
     return 0;
 };
