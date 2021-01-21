@@ -14,6 +14,7 @@ TEST = test/step1.exe \
 			 test/step12.exe \
 			 test/step13.exe \
 			 test/step14.exe \
+			 test/step15.exe \
 
 DRIVERS = driver/null.o \
           driver/loopback.o \
@@ -24,6 +25,7 @@ OBJS = util.o \
 			 arp.o \
 			 ip.o \
 			 icmp.o \
+			 udp.o \
 
 CFLAGS := $(CFLAGS) -g -W -Wall -Wno-unused-parameter -I .
 
