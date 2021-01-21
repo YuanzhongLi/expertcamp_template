@@ -72,7 +72,7 @@ udp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
     pseudo.dst = dst;
     pseudo.zero = 0;
     pseudo.protocol = IP_PROTOCOL_UDP;
-    pseudo.len = sizeof(pseudo) + len;
+    pseudo.len = hton16(len);
     psum = ~(cksum16((uint16_t *)(&pseudo), sizeof(pseudo), 0)); // 途中までのsumなので反転させる
 
     if (cksum16((uint16_t *)data, len, psum) != 0) {
@@ -107,7 +107,7 @@ udp_output(struct udp_endpoint *src, struct udp_endpoint *dst, uint8_t *data, si
     pseudo.dst = dst->addr;
     pseudo.zero = 0;
     pseudo.protocol = IP_PROTOCOL_UDP;
-    pseudo.len = sizeof(pseudo) + sizeof(*hdr) + len;
+    pseudo.len = hton16(sizeof(*hdr) + len);
 
     psum = ~(cksum16((uint16_t *)(&pseudo), sizeof(pseudo), 0)); //途中までのsumなので反転させる
 
@@ -115,10 +115,10 @@ udp_output(struct udp_endpoint *src, struct udp_endpoint *dst, uint8_t *data, si
     hdr = (struct udp_hdr *)buf;
     hdr->src = src->port;
     hdr->dst = dst->port;
-    hdr->len = sizeof(*hdr) + len;
+    hdr->len = hton16(sizeof(*hdr) + len);
     hdr->sum = 0;
     memcpy(hdr+1, data, len);
-    hdr->sum = cksum16((uint16_t *)hdr, hdr->len, psum);
+    hdr->sum = cksum16((uint16_t *)hdr, sizeof(*hdr) + len, psum);
 
     debugf("%s:%d => %s:%d (%zu bytes payload)",
         ip_addr_ntop(src->addr, addr1, sizeof(addr1)), ntoh16(src->port),
@@ -129,13 +129,13 @@ udp_output(struct udp_endpoint *src, struct udp_endpoint *dst, uint8_t *data, si
      * exercise: step15
      *   IPの送信関数を呼び出してUDPデータグラムを送信
      */
-    return ip_output(IP_PROTOCOL_UDP, buf, hdr->len, pseudo.src, pseudo.dst);
+    return ip_output(IP_PROTOCOL_UDP, buf, sizeof(*hdr) + len, src->addr, dst->addr);
 }
 
 int
 udp_init(void)
 {
-    if (ip_protocol_register("UDP", IP_PROTOCOL_TCP, udp_input) == -1) {
+    if (ip_protocol_register("UDP", IP_PROTOCOL_UDP, udp_input) == -1) {
         return -1;
     }
     return 0;

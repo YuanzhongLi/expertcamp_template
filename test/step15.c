@@ -72,7 +72,7 @@ main(void)
     ip_addr_pton("172.16.10.1", &dst.addr);
     dst.port = hton16(10007);
     while (!terminate) {
-        udp_output(&src, &dst, (uint8_t *)data, strlen(data));
+        // udp_output(&src, &dst, (uint8_t *)data, strlen(data));
         sleep(1);
     }
     net_shutdown();

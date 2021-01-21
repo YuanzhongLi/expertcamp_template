@@ -413,6 +413,7 @@ net_shutdown(void)
 #include "arp.h"
 #include "ip.h"
 #include "icmp.h"
+#include "udp.h"
 
 int
 net_init(void)
@@ -424,6 +425,9 @@ net_init(void)
         return -1;
     }
     if (icmp_init() == -1) {
+        return -1;
+    }
+    if (udp_init() == -1) {
         return -1;
     }
     return 0;
