@@ -155,16 +155,10 @@ ip_route_lookup(ip_addr_t dst)
      *     - 含まれなければスキップして次のルート情報を確認する
      *   (2) 候補（candidate）と比較してネットマスクの長さが大きければ候補を置き換える
      */
-    int match_bit = -1;
-    for (route = routes; route; route = routes->next) {
-        if ((dst & route->iface->netmask) == (route->iface->unicast & route->iface->netmask)) { // (1)
-            if (candidate) {
-                int bit = __builtin__popcount(route->iface->netmask);
-                if (bit > match_bit) {
-                    candidate = route;
-                    match_bit = bit;
-                }
-            } else {
+
+    for (route = routes; route; route = route->next) {
+        if ((dst & route->netmask) == (route->iface->unicast & route->netmask)) { // (1)
+            if (candidate == NULL || ntoh32(candidate->netmask) < ntoh32(route->netmask)) {
                 candidate = route;
             }
         }
@@ -183,7 +177,8 @@ ip_route_set_default_gateway(struct ip_iface *iface, const char *gateway)
      *     - 0.0.0.0/0 のネットワーク宛のパケットは gateway を NextHop として iface から出力
      */
     ip_addr_pton(gateway, &gw);
-    ip_route_add(0, 0, gw, iface);
+    ip_route_add(IP_ADDR_ANY, IP_ADDR_ANY, gw, iface);
+    return 0;
 }
 
 struct ip_iface *

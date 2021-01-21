@@ -305,7 +305,7 @@ arp_timer(void)
      *    - タイムアウトの判定は「現在時刻」と「エントリのタイムスタンプ」の差分が ARP_TABLE_TIMEOUT（秒）以上であるかどうか
      */
     for (entry = arp_table; entry < array_tailof(arp_table); entry++) {
-        if (entry->state == ARP_ENTRY_STATE_INCOMPLETE || entry->state == ARP_ENTRY_STATE_STATIC) {
+        if (entry->state == ARP_ENTRY_STATE_FREE || entry->state == ARP_ENTRY_STATE_STATIC) {
           continue;
         }
         gettimeofday(&now, NULL);
