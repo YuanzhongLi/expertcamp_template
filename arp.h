@@ -11,6 +11,8 @@
 #define ARP_RESOLVE_FOUND  1
 
 extern int
+arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha);
+extern int
 arp_init(void);
 
 #endif

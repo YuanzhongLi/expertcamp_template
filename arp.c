@@ -176,6 +176,42 @@ arp_table_delete(struct arp_entry *entry)
 }
 
 static int
+arp_request(struct net_iface *iface, ip_addr_t tpa)
+{
+    struct arp_ether request;
+
+    /*
+     * exercise: step12
+     *   ARP要求メッセージの生成
+     */
+    /* header作成 */
+    request.hdr.hrd = hton16(ARP_HRD_ETHER);
+    request.hdr.pro = hton16(ARP_PRO_IP);
+    request.hdr.hln = ETHER_ADDR_LEN;
+    request.hdr.pln = IP_ADDR_LEN;
+    request.hdr.op = hton16(ARP_OP_REQUEST);
+    /* ip, hdaddrの作成 */
+    struct ip_iface *ip_iface;
+    ip_iface = (struct ip_iface *)iface;
+    memcpy(request.sha, iface->dev->addr, sizeof(request.sha));
+    memcpy(request.spa, (uint8_t *)(&(ip_iface->unicast)), sizeof(request.spa));
+    /* tha do not care (0) */
+    memcpy(request.tha, 0, sizeof(request.tha));
+    memcpy(request.tpa, (uint8_t *)&tpa, sizeof(request.tpa));
+
+
+    debugf("%zd bytes data to <%s>", sizeof(request), iface->dev->name);
+    arp_dump((uint8_t *)&request, sizeof(request));
+
+    /*
+     * exercise: step12
+     *   デバイスから送信
+     *     - 呼び出した関数の戻り値をこの関数の戻り値としてそのまま返す
+     */
+    return net_device_output(NET_IFACE(iface)->dev, NET_PROTOCOL_TYPE_ARP, (uint8_t *)(&request), sizeof(request), ETHER_ADDR_BROADCAST);
+}
+
+static int
 arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint8_t *dst)
 {
     struct arp_ether reply;
@@ -206,6 +242,50 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
      *     - 呼び出した関数の戻り値をこの関数の戻り値としてそのまま返す
      */
     return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)(&reply), sizeof(reply), dst);
+}
+
+arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
+{
+    struct arp_entry *entry;
+
+    if (iface->dev->type != NET_DEVICE_TYPE_ETHERNET) {
+        debugf("unsupported hardware address type");
+        return ARP_RESOLVE_ERROR;
+    }
+    if (iface->family != NET_IFACE_FAMILY_IPV4) {
+        debugf("unsupported protocol address type");
+        return ARP_RESOLVE_ERROR;
+    }
+    pthread_mutex_lock(&mutex);
+    entry = arp_table_select(pa);
+    if (entry) {
+        if (entry->state == ARP_ENTRY_STATE_INCOMPLETE) {
+            arp_request(iface, pa); /* just in case packet loss */
+            pthread_mutex_unlock(&mutex);
+            return ARP_RESOLVE_QUERY;
+        }
+
+        memcpy(ha, entry->ha, ETHER_ADDR_LEN);
+        pthread_mutex_unlock(&mutex);
+        return ARP_RESOLVE_FOUND;
+    }
+    /*
+     * exercise: step12
+     *   未解決のアドレスを解決するためにARP要求を送信する
+     *   (1) ARPテーブルから未使用のエントリを取得
+     *   (2) エントリの状態を ARP_ENTRY_STATE_INCOMPLETE に設定
+     *   (3) エントリのプロトコルアドレスに pa を設定
+     *   (4) エントリのタイムスタンプに現在時刻を設定
+     *   (5) ARPリクエストの送信関数を呼び出す
+     */
+    entry = arp_table_freespace(); // (1)
+    entry->state = ARP_ENTRY_STATE_INCOMPLETE; // (2)
+    entry->pa = pa; // (3)
+    gettimeofday(&entry->timestamp, NULL); // (4)
+    pthread_mutex_unlock(&mutex);
+    arp_request(iface, entry->pa); // (5)
+
+    return ARP_RESOLVE_QUERY;
 }
 
 static void
