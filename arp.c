@@ -290,6 +290,37 @@ arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
 }
 
 static void
+arp_timer(void)
+{
+    struct arp_entry *entry;
+    struct timeval now, diff;
+
+    pthread_mutex_lock(&mutex);
+
+    /*
+     * exercise: step13
+     *   ARPテーブルを巡回してタイムアウトしているエントリを削除する
+     *    - ARPエントリのうち state が ARP_ENTRY_STATE_FREE または ARP_ENTRY_STATE_STATIC のものはチェックをスキップする
+     *    - struct timeval 型で保持している時刻情報は timersub() で差分を取得する
+     *    - タイムアウトの判定は「現在時刻」と「エントリのタイムスタンプ」の差分が ARP_TABLE_TIMEOUT（秒）以上であるかどうか
+     */
+    for (entry = arp_table; entry < array_tailof(arp_table); entry++) {
+        if (entry->state == ARP_ENTRY_STATE_INCOMPLETE || entry->state == ARP_ENTRY_STATE_STATIC) {
+          continue;
+        }
+        gettimeofday(&now, NULL);
+        timersub(&now, &(entry->timestamp), &diff);
+        if (ARP_TABLE_TIMEOUT <= diff.tv_sec) { /* secondで30秒以上判定 */
+            arp_table_delete(entry);
+        }
+    }
+
+    pthread_mutex_unlock(&mutex);
+}
+
+
+
+static void
 arp_input(const uint8_t *data, size_t len, struct net_device *dev)
 {
     struct arp_ether *msg;
@@ -347,8 +378,15 @@ arp_input(const uint8_t *data, size_t len, struct net_device *dev)
 int
 arp_init(void)
 {
+    struct timeval interval = {1, 0};
+
     if (net_protocol_register("ARP", NET_PROTOCOL_TYPE_ARP, arp_input) == -1) {
         return -1;
     }
+    /*
+     * exercise: step13
+     *   プロトコルスタック本体にARPタイマーを登録する
+     */
+    net_timer_register("ARP_TIMER", interval, arp_timer);
     return 0;
 }

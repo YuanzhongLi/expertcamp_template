@@ -89,6 +89,9 @@ extern char *
 net_protocol_name(uint16_t type);
 
 extern int
+net_timer_register(const char *name, struct timeval interval, void (*handler)(void));
+
+extern int
 net_run(void);
 extern void
 net_shutdown(void);
