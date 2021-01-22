@@ -49,7 +49,8 @@ extern int
 ip_iface_register(struct net_device *dev, struct ip_iface *iface);
 extern struct ip_iface *
 ip_iface_by_addr(ip_addr_t addr);
-
+extern struct ip_iface *
+ip_iface_by_peer(ip_addr_t peer);
 extern int
 ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst));
 

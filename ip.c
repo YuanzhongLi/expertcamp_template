@@ -251,6 +251,18 @@ ip_iface_by_addr(ip_addr_t addr)
     return entry;
 }
 
+struct ip_iface *
+ip_iface_by_peer(ip_addr_t peer)
+{
+    struct ip_route *route;
+
+    route = ip_route_lookup(peer);
+    if (!route) {
+        return NULL;
+    }
+    return route->iface;
+}
+
 /* NOTE: must not be call after net_run() */
 int
 ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst))

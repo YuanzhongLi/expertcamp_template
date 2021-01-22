@@ -69,6 +69,8 @@ struct net_device {
     void *priv;
 };
 
+extern volatile sig_atomic_t net_interrupt;
+
 extern struct net_device *
 net_device_alloc(void (*setup)(struct net_device *dev));
 extern int

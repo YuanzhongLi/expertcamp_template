@@ -35,6 +35,8 @@ struct net_timer {
     void (*handler)(void);
 };
 
+volatile sig_atomic_t net_interrupt;
+
 static pthread_t thread;
 static volatile sig_atomic_t terminate;
 
