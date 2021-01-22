@@ -77,8 +77,13 @@ main(void)
     local.addr = IP_ADDR_ANY;
     local.port = ntoh16(7);
     udp_bind(soc, &local);
-    while (ret = udp_recvfrom(soc, buf, 1024, &foreign) > 0) {
-      udp_sendto(soc, buf, ret, &foreign); // エコーサーバなのでもらったものをそのまま返す
+    while (1) {
+        ret = udp_recvfrom(soc, buf, 1024, &foreign);
+        if (ret <= 0) {
+            break;
+        }
+        hexdump(stderr, buf, ret);
+        udp_sendto(soc, buf, ret, &foreign); // エコーサーバなのでもらったものをそのまま返す
     }
     udp_close(soc);
     net_shutdown();

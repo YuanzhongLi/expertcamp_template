@@ -77,7 +77,7 @@ udp_pcb_new(void)
     struct udp_pcb *pcb;
 
     for (pcb = pcbs; pcb < array_tailof(pcbs); pcb++) {
-        if (pcb->state = UDP_PCB_STATE_CLOSED) {
+        if (pcb->state == UDP_PCB_STATE_CLOSED) {
             pcb->state = UDP_PCB_STATE_OPEN;
             pthread_cond_init(&pcb->cond, NULL);
             return pcb;
@@ -210,9 +210,9 @@ udp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
     /* (2) */
     entry = calloc(1, sizeof(*entry) + (len-sizeof(*hdr))); // udp headerを除くサイズ
     entry->len = (len-sizeof(*hdr));
-    entry->foreign.addr = dst;
-    entry->foreign.port = hdr->dst;
-    memcpy(entry+1, (uint8_t *)(hdr+1), (len-sizeof(*hdr)));
+    entry->foreign.addr = src;
+    entry->foreign.port = hdr->src;
+    memcpy(entry->data, (uint8_t *)(hdr+1), (len-sizeof(*hdr)));
     queue_push(&pcb->queue, entry);
     /* (3) */
     pthread_cond_broadcast(&pcb->cond);
@@ -362,7 +362,7 @@ udp_sendto(int id, uint8_t *data, size_t len, struct udp_endpoint *peer)
         return -1;
     }
     src.addr = pcb->local.addr;
-    if (src.addr = IP_ADDR_ANY) {
+    if (src.addr == IP_ADDR_ANY) {
         iface = ip_iface_by_peer(peer->addr);
         if (!iface) {
             pthread_mutex_unlock(&m_pcbs);
