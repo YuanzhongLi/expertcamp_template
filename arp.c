@@ -298,7 +298,6 @@ arp_timer(void)
     pthread_mutex_lock(&mutex);
 
     /*
-     * exercise: step13
      *   ARPテーブルを巡回してタイムアウトしているエントリを削除する
      *    - ARPエントリのうち state が ARP_ENTRY_STATE_FREE または ARP_ENTRY_STATE_STATIC のものはチェックをスキップする
      *    - struct timeval 型で保持している時刻情報は timersub() で差分を取得する

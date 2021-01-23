@@ -1,6 +1,6 @@
 APPS =
 
-TEST = test/step1.exe \
+TEST = test/null_device.exe \
 			 test/step2.exe \
 			 test/step3.exe \
 			 test/step4.exe \

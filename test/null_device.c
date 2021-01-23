@@ -63,3 +63,8 @@ main(void)
     net_shutdown();
     return 0;
 }
+
+/*
+ * ASSUMED RESULT
+ * call null_device tranmit and just dump the data
+ */
